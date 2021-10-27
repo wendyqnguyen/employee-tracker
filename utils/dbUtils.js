@@ -106,7 +106,7 @@ departments = JSON.parse(departments);
     {
         type: 'list',
         name: 'department_name',
-        message: "Please enter the role department >> ",
+        message: "Please select the department >> ",
         choices: departments
     }
   ])
@@ -166,6 +166,81 @@ async function insertDepartment(name) {
   }
 }
 
+async function addEmployee () {
+  console.log(`
+=====================
+Add Employee
+=====================
+`);
+
+let result = await db.execute("SELECT title FROM roles;");
+let roles = result[0];
+roles = JSON.stringify(roles);
+roles = roles.replace(/"title":/g, '');
+roles = roles.replace(/}/g, '');
+roles = roles.replace(/{/g, '');
+roles = JSON.parse(roles);
+
+result = await db.execute("SELECT first_name, last_name FROM employee;");
+let managers = result[0];
+let managerNames = [];
+for( i = 0; i< managers.length; i++){
+  managerNames.push(managers[i].first_name + " " + managers[i].last_name)
+}
+// console.log("* " + managers[0].first_name + " " + managers[0].last_name);
+// managers = JSON.stringify(managers);
+// managers = managers.replace(/"first_name":/g, '');
+// managers = managers.replace(/"last_name":/g, '');
+// managers = managers.replace(/}/g, '');
+// managers = managers.replace(/{/g, '');
+// // managers = JSON.parse(managers);
+
+console.log("* " + managerNames);
+return;
+inquirer.prompt([
+  {
+      type: 'input',
+      name: 'firstName',
+      message: "Please enter the first name >> "
+  },
+  {
+      type: 'input',
+      name: 'lastName',
+      message: "Please enter the last name >> "
+  },
+  {
+      type: 'list',
+      name: 'roles',
+      message: "Please select the role  >> ",
+      choices: roles
+  }
+])
+.then ((answer) => {
+return insertEmployee(answer);
+  
+})
+
+   
+}
+
+async function insertEmployee(values) {
+try {
+  const sql = `INSERT INTO employee 
+  SET first_name = "${values.firstName}",
+  last_name = "${values.lastName}",
+  role_id = (
+      SELECT id
+        FROM roles
+        WHERE title = "${values.roles}")`;
+  console.log(sql);
+  const result = await db.query(sql);
+  console.log(values.title + " employee was added.")
+  return mainPrompt();
+} catch (error) {
+  return error;
+}
+}
+
 async function mainPrompt () {
 
   inquirer.prompt( [
@@ -185,38 +260,34 @@ async function mainPrompt () {
       //If 'View all departments' is chosen
       //call displayDepartmentNames() to display all departments
       if (answer.actions === 'View all departments') {
-          console.clear();
-          getDeparments().then((departments) => {
-              printDataTable("Departments", departments);
-              return mainPrompt();
-          })
-            
+        console.clear();
+        getDeparments().then((departments) => {
+            printDataTable("Departments", departments);
+            return mainPrompt();
+        })
+          
       } else if (answer.actions === 'View all roles'){
-          console.clear();
-          getRoles().then((roles) => {
-              printDataTable("Roles", roles);
-              return mainPrompt();
-          })
+        console.clear();
+        getRoles().then((roles) => {
+            printDataTable("Roles", roles);
+            return mainPrompt();
+        })
       } else if (answer.actions === 'View all employees'){
-          console.clear();
-          getEmployees().then((roles) => {
-              printDataTable("Employees", roles);
-              return mainPrompt();
-          })
+        console.clear();
+        getEmployees().then((roles) => {
+            printDataTable("Employees", roles);
+            return mainPrompt();
+        })
       } else if (answer.actions === 'Add a role'){
         console.clear();
         addRole();
       } else if (answer.actions === 'Add a department'){
-          console.clear();
-          addDepartment();
+        console.clear();
+        addDepartment();
+      } else if (answer.actions === 'Add an employee'){
+        console.clear();
+        addEmployee();
       }
-  //   } else if (answer.actions === 'Add an engineer') {
-  //       //if 'Add an engineer' is selected call the function to prompt for engineer info
-  //       return promptEngineer();
-  //   } else if (answer.actions === 'Add an intern') {
-  //     //if 'Add an intern' is selected call the function to prompt for intern info
-  //         return promptIntern();
-  //     }
   });
 };
 
