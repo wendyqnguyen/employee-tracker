@@ -4,9 +4,9 @@ VALUES
 ('Operations'),
 ('Marketing and Sales'),
 ('Research and Development'),
-('Finance')
+('Finance');
 
-INSERT INTO role (title, salary, department_id)
+INSERT INTO roles (title, salary, department_id)
 VALUES
   ('Administrative Assistant', 65000, 2),
   ('Executive Assistant', 77000, 2), 
@@ -15,17 +15,17 @@ VALUES
   ('IT', 150000, 4),
   ('Software Engineer', 125000, 4),
   ('Sales Manager', 120000, 3),
-  ('Data Entry Clerk', 45000, 5)
+  ('Data Entry Clerk', 45000, 5);
 
-INSERT INTO employee (first_name, last_name, role_id)
+INSERT INTO employee (first_name, last_name, role_id, manager_id)
 VALUES
-  ('Ronald', 'Firbank', 25),
-  ('Virginia', 'Woolf', 26)
---   ('Piers', 'Gaveston', 27, 3),
---   ('Charles', 'LeRoi', 28, 2),
---   ('Katherine', 'Mansfield', 29, 2),
---   ('Dora', 'Carrington', 30, 4),
---   ('Edward', 'Bellamy', 31, 3),
---   ('Montague', 'Summers', 32, 5),
---   ('Octavia', 'Butler', 30, 4),
---   ('Unica', 'Zurn', 30, 4)
+  ('Ronald', 'Firbank', 1, 1),
+  ('Virginia', 'Woolf', 2, 1),
+  ('Piers', 'Gaveston', 3, 3),
+  ('Charles', 'LeRoi', 4, 2),
+  ('Katherine', 'Mansfield', 5, 2),
+  ('Dora', 'Carrington', 1, 4),
+  ('Edward', 'Bellamy', 2, 3),
+  ('Montague', 'Summers', 3, 5),
+  ('Octavia', 'Butler', 5, 4),
+  ('Unica', 'Zurn', 5, 4);
