@@ -75,6 +75,13 @@ async function getRoles(){
   return result[0];
   }
 
+async function getEmployeeID(name){
+  const split = name.split(' ');
+  const sql = `SELECT employee.id FROM employee WHERE employee.first_name = '${split[0]}' AND employee.last_name = '${split[1]}'`;
+  const result = await db.query(sql);
+  console.log("id: " + result[0])
+  return result[0];
+    }
 async function addRole () {
     console.log(`
 =====================
@@ -173,30 +180,33 @@ Add Employee
 =====================
 `);
 
-let result = await db.execute("SELECT title FROM roles;");
+let result = await db.execute("SELECT * FROM roles;");
 let roles = result[0];
-roles = JSON.stringify(roles);
-roles = roles.replace(/"title":/g, '');
-roles = roles.replace(/}/g, '');
-roles = roles.replace(/{/g, '');
-roles = JSON.parse(roles);
+let roleChoices = [];
 
-result = await db.execute("SELECT first_name, last_name FROM employee;");
-let managers = result[0];
-let managerNames = [];
-for( i = 0; i< managers.length; i++){
-  managerNames.push(managers[i].first_name + " " + managers[i].last_name)
+for( i = 0; i< roles.length; i++){
+    const choice = {
+      name: roles[i].title,
+      value: roles[i].id,
+    };
+    roleChoices.push(choice);
 }
-// console.log("* " + managers[0].first_name + " " + managers[0].last_name);
-// managers = JSON.stringify(managers);
-// managers = managers.replace(/"first_name":/g, '');
-// managers = managers.replace(/"last_name":/g, '');
-// managers = managers.replace(/}/g, '');
-// managers = managers.replace(/{/g, '');
-// // managers = JSON.parse(managers);
 
-console.log("* " + managerNames);
-return;
+result = await db.execute("SELECT * FROM employee;");
+let managers = result[0];
+
+let managerChoices = [];
+for( i = 0; i< managers.length; i++){
+
+    full_name = managers[i].first_name + " " + managers[i].last_name;
+    let idValue = "value: " + managers[i].id;
+    const choice = {
+      name: full_name,
+      value: managers[i].id,
+    };
+    managerChoices.push(choice);
+}
+
 inquirer.prompt([
   {
       type: 'input',
@@ -210,13 +220,19 @@ inquirer.prompt([
   },
   {
       type: 'list',
-      name: 'roles',
+      name: 'role',
       message: "Please select the role  >> ",
-      choices: roles
+      choices: roleChoices
+  },
+  {
+      type: 'list',
+      name: 'manager',
+      message: "Please select a manager  >> ",
+      choices: managerChoices
   }
 ])
 .then ((answer) => {
-return insertEmployee(answer);
+  return insertEmployee(answer);
   
 })
 
@@ -224,21 +240,98 @@ return insertEmployee(answer);
 }
 
 async function insertEmployee(values) {
-try {
-  const sql = `INSERT INTO employee 
-  SET first_name = "${values.firstName}",
-  last_name = "${values.lastName}",
-  role_id = (
-      SELECT id
-        FROM roles
-        WHERE title = "${values.roles}")`;
-  console.log(sql);
-  const result = await db.query(sql);
-  console.log(values.title + " employee was added.")
-  return mainPrompt();
-} catch (error) {
-  return error;
+
+  try {
+    const sql = `INSERT INTO employee 
+    SET first_name = "${values.firstName}",
+    last_name = "${values.lastName}",
+    role_id = ${values.role},
+    manager_id = ${values.manager}`;
+    const result = await db.query(sql);
+    
+    return mainPrompt();
+  } catch (error) {
+    return error;
+  }
+
 }
+
+async function updateEmployee () {
+  console.log(`
+=====================
+Update Employee
+=====================
+`);
+
+let result = await db.execute("SELECT * FROM employee;");
+let employees = result[0];
+let employeeChoices = [];
+
+for( i = 0; i< employees.length; i++){
+  full_name = employees[i].first_name + " " + employees[i].last_name;
+  const choice = {
+    name: full_name,
+    value: employees[i].id,
+  };
+  employeeChoices.push(choice);
+}
+inquirer.prompt([
+  {
+      type: 'list',
+      name: 'employee',
+      message: "Please select an employee  >> ",
+      choices: employeeChoices
+  }
+])
+.then ((answer) => {
+
+  return promptForManager(answer);
+});
+   
+}
+
+async function promptForManager (employee) {
+let result = await db.execute(`SELECT * FROM employee WHERE id != ${employee.employee};`);
+let managers = result[0];
+let managerChoices = [];
+
+for( i = 0; i< managers.length; i++){
+  full_name = managers[i].first_name + " " + managers[i].last_name;
+  const choice = {
+    name: full_name,
+    value: managers[i].id,
+  };
+  managerChoices.push(choice);
+}
+
+inquirer.prompt([
+  {
+      type: 'list',
+      name: 'manager',
+      message: "Please select a manager  >> ",
+      choices: managerChoices
+  }
+])
+.then ((answer) => {
+  answer.employee = employee.employee;
+  return updateEmployeeManager(answer);
+});
+   
+}
+async function updateEmployeeManager(values) {
+
+  try {
+    const sql = `UPDATE employee 
+    SET manager_id = ${values.manager}
+    WHERE id=${values.employee}`;
+    console.log(sql);
+    const result = await db.query(sql);
+    
+    return mainPrompt();
+  } catch (error) {
+    return error;
+  }
+
 }
 
 async function mainPrompt () {
@@ -254,7 +347,7 @@ async function mainPrompt () {
           'Add a department', 
           'Add a role', 
           'Add an employee', 
-          'Update an employee role']
+          'Update an employee']
       }])
   .then(answer => {
       //If 'View all departments' is chosen
@@ -287,6 +380,9 @@ async function mainPrompt () {
       } else if (answer.actions === 'Add an employee'){
         console.clear();
         addEmployee();
+      } else if (answer.actions === 'Update an employee'){
+        console.clear();
+        updateEmployee();
       }
   });
 };
