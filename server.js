@@ -1,11 +1,7 @@
 const mysql = require('mysql2/promise');
 const inquirer = require('inquirer');
 const cTable = require('console.table');
-
 const dbUtils = require('./utils/dbUtils');
-const inputCheck = require('./utils/inputCheck');
-const { json } = require('express');
-// const { getDepartmentNames } = require('./utils/dbUtils');
 
 // Connect to database
 const db = mysql.createPool(
@@ -23,15 +19,12 @@ const db = mysql.createPool(
     console.log('Connected to the company database.')
   );
 
-//   const promisePool = db.promise();
-
-
-
-
+// start app functionality
   console.log(`
 =====================
 Employee Tracker
 =====================
 `);
 
-  dbUtils.mainPrompt();
+// call main prompt
+dbUtils.mainPrompt();

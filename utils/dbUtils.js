@@ -28,6 +28,8 @@ ${title.toUpperCase()}
   console.table(data);
   console.log(`----------------------------------------------------------`);
 }
+
+// function that returns a department ID based on name
 function getDepartmentID (departmentName) {
     const params = [];
     params[0] = departmentName;
@@ -43,6 +45,7 @@ function getDepartmentID (departmentName) {
         
   }
 
+//function that returns all the department names in the db
   async function getDepartmentNames(){
     let departmentArr = [];
     const sql = `SELECT * FROM department`;
@@ -59,29 +62,24 @@ function getDepartmentID (departmentName) {
       });
     }
 
-  async function getDeparments() {
+async function getDeparments() {
     const result = await db.query("SELECT * FROM department ORDER BY name ASC");
     return result[0];
   }
   
 async function getEmployees(){
 
-  const result = await db.query("SELECT * FROM employee");
+  const result = await db.query(`SELECT e.id, e.first_name, e.last_name, roles.title, department.name AS department, roles.salary, (select CONCAT(m.first_name, ' ', m.last_name) from employee m where m.id = e.manager_id) AS manager
+  FROM employee e JOIN roles on e.role_id = roles.id 
+  JOIN department ON department.id = roles.department_id`);
   return result[0];
   }
 
 async function getRoles(){
-  const result = await db.query("SELECT roles.id, roles.title, roles.salary, department.name  FROM roles, department WHERE roles.department_id = department.id;");
+  const result = await db.query("SELECT roles.id, roles.title, roles.salary, department.name AS department  FROM roles, department WHERE roles.department_id = department.id;");
   return result[0];
   }
 
-async function getEmployeeID(name){
-  const split = name.split(' ');
-  const sql = `SELECT employee.id FROM employee WHERE employee.first_name = '${split[0]}' AND employee.last_name = '${split[1]}'`;
-  const result = await db.query(sql);
-  console.log("id: " + result[0])
-  return result[0];
-    }
 async function addRole () {
     console.log(`
 =====================
@@ -89,16 +87,17 @@ Add Role
 =====================
 `);
 
+  //compose the list of choices for roles's department
+  let department_id;
+  let result = await db.execute("SELECT name FROM department;");
+  let departments = result[0];
+  departments = JSON.stringify(departments);
+  departments = departments.replace(/"name":/g, '');
+  departments = departments.replace(/}/g, '');
+  departments = departments.replace(/{/g, '');
+  departments = JSON.parse(departments);
 
-let department_id;
-let result = await db.execute("SELECT name FROM department;");
-let departments = result[0];
-departments = JSON.stringify(departments);
-departments = departments.replace(/"name":/g, '');
-departments = departments.replace(/}/g, '');
-departments = departments.replace(/{/g, '');
-departments = JSON.parse(departments);
-
+  //promt user for new role information
   inquirer.prompt([
     {
         type: 'input',
@@ -118,8 +117,8 @@ departments = JSON.parse(departments);
     }
   ])
   .then ((answer) => {
-  return insertRole(answer);
-    
+    //call insertRole to insert new role row db
+    return insertRole(answer);
   })
 
      
@@ -127,6 +126,7 @@ departments = JSON.parse(departments);
 
 async function insertRole(values) {
   try {
+    //construct SQl statement for adding new role row based on user entered info
     const sql = `INSERT INTO roles 
     SET title = "${values.title}",
     salary = ${values.salary},
@@ -134,8 +134,11 @@ async function insertRole(values) {
         SELECT id
           FROM department
           WHERE name = "${values.department_name}")`;
+    //execute SQl insert statement
     const result = await db.query(sql);
+    //tell user about success
     console.log(values.title + " role was added.")
+    //circle back to main prompt
     return mainPrompt();
   } catch (error) {
     return error;
@@ -144,11 +147,13 @@ async function insertRole(values) {
 
 async function addDepartment (){
   
-console.log(`
+  console.log(`
 =====================
 Add Department
 =====================
 `);
+
+  //prompt for new department name and call function to insert new department into db
   inquirer.prompt([
       {
           type: 'input',
@@ -163,10 +168,14 @@ Add Department
 
 async function insertDepartment(name) {
   try {
+    //construct insert SQL statement to add new row to department table
     const sql = "INSERT INTO department (name) VALUES (?)";
     params = [name];
+    //execute SQL statement
     const result = await db.query(sql, params);
+    //alert user of success
     console.log(name + " department was added.")
+    //circle back to main prompt
     return mainPrompt();
   } catch (error) {
     return error;
@@ -324,9 +333,8 @@ async function updateEmployeeManager(values) {
     const sql = `UPDATE employee 
     SET manager_id = ${values.manager}
     WHERE id=${values.employee}`;
-    console.log(sql);
     const result = await db.query(sql);
-    
+    console.log("Updated employee's manager.");
     return mainPrompt();
   } catch (error) {
     return error;
